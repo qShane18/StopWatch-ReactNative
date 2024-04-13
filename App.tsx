@@ -18,21 +18,14 @@ import {
   View,
 } from 'react-native';
 
-import {
-  Colors,
-  DebugInstructions,
-  Header,
-  LearnMoreLinks,
-  ReloadInstructions,
-} from 'react-native/Libraries/NewAppScreen';
-
 
 
 function App(): React.JSX.Element {
   const [isRunning, setIsRunning] = useState(false);
   const [elapsedTime, setElapsedTime] = useState(0);
   const [laps, setLaps] = useState<number[]>([]);
-  const [countLap, setCountLap] = useState(0)
+  const [countLap, setCountLap] = useState(0);
+  const [latestLap, setLatestLap] = useState<number>(0);
   let interval: NodeJS.Timeout;
 
   useEffect(() => {
@@ -57,7 +50,9 @@ function App(): React.JSX.Element {
   };
 
   const handleRecordLap = () => {
-    setLaps(prevLaps => [...prevLaps, elapsedTime]);
+    const lap = elapsedTime - latestLap;
+    setLatestLap(lap);
+    setLaps(prevLaps => [...prevLaps, lap]);
   };
 
   const formatTime = (timeInSeconds: number): string => {
@@ -82,6 +77,10 @@ function App(): React.JSX.Element {
         ]} underlayColor='gray' onPress={handleStartStop}>
           <Text>{isRunning? "Stop" : "Start"}</Text>
         </TouchableHighlight>
+      </View>
+      <View style={styles.currentLap}>
+              <Text style={styles.lapText}>Lap :</Text>
+              <Text style={styles.lapText}>{formatTime(elapsedTime)}</Text>
       </View>
       <ScrollView style={styles.footer}>
       {laps.map((lap, index) => (
@@ -114,11 +113,20 @@ const styles = StyleSheet.create({
   timer: {
     fontSize: 60,
   },
+  currentLap: {
+    justifyContent: 'space-around', 
+    flexDirection: 'row',
+    borderWidth: 1,
+    padding: 10,
+    borderRadius: 8,
+    marginTop: 10
+  },
   lap: {
     justifyContent: 'space-around', 
     flexDirection: 'row',
     backgroundColor: 'lightgray',
     padding: 10,
+    borderRadius: 8,
     marginTop: 10
   },
   lapBtn: {
@@ -137,9 +145,10 @@ const styles = StyleSheet.create({
     height: 100,
     borderRadius: 50,
     justifyContent: 'center',
-    alignItems: 'center'
+    alignItems: 'center',
   },
   StartBtn: {
+    opacity: 0.8,
     borderWidth: 2,
     width: 100,
     height: 100,
@@ -149,6 +158,7 @@ const styles = StyleSheet.create({
     backgroundColor: '#6cf577'
   },
   StopBtn: {
+    opacity: 0.8,
     borderWidth: 2,
     width: 100,
     height: 100,
@@ -158,7 +168,6 @@ const styles = StyleSheet.create({
     backgroundColor: '#f56464'
   },
   footer: {
-    flexDirection: 'column-reverse',
     height: '30%'
   }
 });
