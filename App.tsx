@@ -8,13 +8,10 @@
 import React, { useEffect, useState } from 'react';
 import type {PropsWithChildren} from 'react';
 import {
-  SafeAreaView,
   ScrollView,
-  StatusBar,
   StyleSheet,
   Text,
   TouchableHighlight,
-  useColorScheme,
   View,
 } from 'react-native';
 
@@ -24,15 +21,18 @@ function App(): React.JSX.Element {
   const [isRunning, setIsRunning] = useState(false);
   const [elapsedTime, setElapsedTime] = useState(0);
   const [laps, setLaps] = useState<number[]>([]);
-  const [countLap, setCountLap] = useState(0);
-  const [latestLap, setLatestLap] = useState<number>(0);
+  const [latestLap, setLatestLap] = useState(0);
+
+  const [minLap, setMinLap] = useState(0);
+  const [maxLap, setMaxLap] = useState(0);
+
   let interval: NodeJS.Timeout;
 
   useEffect(() => {
     if (isRunning) {
       interval = setInterval(() => {
         setElapsedTime(prevElapsedTime => prevElapsedTime + 0.1);
-      }, 100);
+      }, 60);
     } else {
       clearInterval(interval);
     }
@@ -80,13 +80,13 @@ function App(): React.JSX.Element {
       </View>
       <View style={styles.currentLap}>
               <Text style={styles.lapText}>Lap :</Text>
-              <Text style={styles.lapText}>{formatTime(elapsedTime)}</Text>
+              <Text style={styles.lapText}>{formatTime(elapsedTime - latestLap)}</Text>
       </View>
       <ScrollView style={styles.footer}>
       {laps.map((lap, index) => (
             <View key={index} style={styles.lap}>
-              <Text style={styles.lapText}>Lap {index + 1}:</Text>
-              <Text style={styles.lapText}>{formatTime(lap)}</Text>
+              <Text style={[styles.lapText, {}]}>Lap {index + 1}:</Text>
+              <Text style={[styles.lapText, {}]}>{formatTime(lap)}</Text>
             </View>
         ))}
       </ScrollView>
