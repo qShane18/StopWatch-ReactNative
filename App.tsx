@@ -6,7 +6,6 @@
  */
 
 import React, { useEffect, useState } from 'react';
-import type {PropsWithChildren} from 'react';
 import {
   ScrollView,
   StyleSheet,
@@ -21,10 +20,12 @@ function App(): React.JSX.Element {
   const [isRunning, setIsRunning] = useState(false);
   const [elapsedTime, setElapsedTime] = useState(0);
   const [laps, setLaps] = useState<number[]>([]);
-  const [latestLap, setLatestLap] = useState(0);
+  const [latestElapsedTime, setLatestElapsedTime] = useState(0);
 
-  const [minLap, setMinLap] = useState(0);
-  const [maxLap, setMaxLap] = useState(0);
+  let i = 0;
+
+  const [minLap, setMinLap] = useState(99999999);
+  const [maxLap, setMaxLap] = useState(-1);
 
   let interval: NodeJS.Timeout;
 
@@ -32,12 +33,21 @@ function App(): React.JSX.Element {
     if (isRunning) {
       interval = setInterval(() => {
         setElapsedTime(prevElapsedTime => prevElapsedTime + 0.1);
-      }, 60);
+      }, 100);
     } else {
       clearInterval(interval);
     }
     return () => clearInterval(interval);
   }, [isRunning]);
+
+  useEffect(() => {
+    if(laps[0] < minLap) {
+      setMinLap(laps[0]);
+    } else if(laps[0] > maxLap) {
+      setMaxLap(laps[0]);
+    }
+  }, [laps])
+
 
   const handleStartStop = () => {
     setIsRunning(prevIsRunning => !prevIsRunning);
@@ -46,59 +56,74 @@ function App(): React.JSX.Element {
   const handleReset = () => {
     setIsRunning(false);
     setElapsedTime(0);
-    setLatestLap(0);
+    setLatestElapsedTime(0);
     setLaps([]);
+    setMinLap(99999999);
+    setMaxLap(-1);
   };
 
   const handleRecordLap = () => {
-    const lap = elapsedTime - latestLap;
-    setLatestLap(lap);
-    setLaps(prevLaps => [...prevLaps, lap]);
+    const lap = elapsedTime - latestElapsedTime;
+    setLatestElapsedTime(elapsedTime);
+    setLaps(prevLaps => [lap, ...prevLaps]);
   };
 
   const formatTime = (timeInSeconds: number): string => {
     const minutes = Math.floor(timeInSeconds / 60).toString().padStart(2, '0');
     const seconds = Math.floor(timeInSeconds % 60).toString().padStart(2, '0');
     const milliseconds = Math.floor((timeInSeconds * 100) % 100).toString().padStart(2, '0');
-    return `${minutes}:${seconds}:${milliseconds}`;
+    return `${minutes}:${seconds},${milliseconds}`;
   };
+
+  console.log("re-render");
+
   return (
-    <View style={styles.container}>
-      <View style={styles.timeWrapper}>
-        <Text style={styles.timer}>
-          {formatTime(elapsedTime)}
-        </Text>
-      </View>
-      <View style={styles.buttonWrapper}>
-        <TouchableHighlight style={styles.LapBtn} underlayColor='gray' onPress={isRunning? handleRecordLap: handleReset}>
-          <Text>{elapsedTime==0? "Lap": (isRunning? "Lap": "Reset")}</Text>
-        </TouchableHighlight>
-        <TouchableHighlight style={[styles.StartBtn, 
-          isRunning? styles.StopBtn : styles.StartBtn
-        ]} underlayColor='gray' onPress={handleStartStop}>
-          <Text>{isRunning? "Stop" : "Start"}</Text>
-        </TouchableHighlight>
-      </View>
-      <View style={styles.currentLap}>
-              <Text style={styles.lapText}>Lap :</Text>
-              <Text style={styles.lapText}>{formatTime(elapsedTime - latestLap)}</Text>
-      </View>
-      <ScrollView style={styles.footer}>
-      {laps.map((lap, index) => (
-            <View key={index} style={styles.lap}>
-              <Text style={[styles.lapText, {}]}>Lap {index + 1}:</Text>
-              <Text style={[styles.lapText, {}]}>{formatTime(lap)}</Text>
+      <View style={styles.container}>
+        <View style={styles.timeWrapper}>
+          <Text style={styles.timer}>
+            {formatTime(elapsedTime)}
+          </Text>
+        </View>
+        <View style={styles.buttonWrapper}>
+          <View style={[styles.BtnRoundedBorder, {borderColor: '#363436'}, elapsedTime==0? {opacity: 0.6}: {opacity: 1}]}>
+            <TouchableHighlight style={[styles.LapBtn]} underlayColor='gray' onPress={isRunning? handleRecordLap: handleReset} disabled={!isRunning && elapsedTime==0? true: false}>
+              <Text style={{color: '#F5F2F5'}}>{elapsedTime==0 || isRunning? "Lap": "Reset"}</Text>
+            </TouchableHighlight>
+          </View>
+
+          <View style={[styles.BtnRoundedBorder, isRunning? {borderColor: '#350E0E'} : {borderColor: '#0A2A13'}]}>
+              <TouchableHighlight style={[styles.StartBtn, 
+                isRunning? styles.StopBtn : styles.StartBtn
+              ]} underlayColor='gray' onPress={handleStartStop}>
+                <Text style={ isRunning?{color: '#EA4C45'}:{color: '#2DC653'}}>{isRunning? "Stop" : "Start"}</Text>
+              </TouchableHighlight>
             </View>
-        ))}
-      </ScrollView>
-    </View>
+        </View>
+        <View style={styles.footer}>
+          <View style={[styles.currentLap, laps.length==0 && !isRunning? {display: 'none'}: {display: 'flex'}]}>
+                  <Text style={styles.lapText}>Lap {laps.length + 1}</Text>
+                  <Text style={styles.lapText}>{formatTime(elapsedTime - latestElapsedTime)}</Text>
+          </View>
+          
+          <ScrollView>
+          {laps.map((lap, index) => 
+          { 
+            return (
+                <View key={index} style={styles.lap}>
+                  <Text style={[styles.lapText, lap <= minLap?{color: '#2DC653'} : (lap >= maxLap? {color: '#EA4C45'}: {color: '#fff'})]}>Lap {laps.length - index}</Text>
+                  <Text style={[styles.lapText, lap <= minLap?{color: '#2DC653'} : (lap >= maxLap? {color: '#EA4C45'}: {color: '#fff'})]}>{formatTime(lap)}</Text>
+                </View>)
+          })}
+          </ScrollView>
+        </View>
+      </View>
   );
 }
 
 const styles = StyleSheet.create({
   container: {
     flex: 2,
-    margin: 40,
+    backgroundColor: '#000',
   },
   timeWrapper: {
     flex: 5,
@@ -108,68 +133,74 @@ const styles = StyleSheet.create({
   buttonWrapper: {
     flex: 2,
     flexDirection: 'row',
-    justifyContent: 'space-around',
-    alignItems: 'center'
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginHorizontal: 20,
+    paddingBottom: 16,
+    borderBottomColor: '#241D24',
+    borderBottomWidth: 1
   },
   timer: {
     fontSize: 60,
+    color: 'white',
   },
   currentLap: {
-    justifyContent: 'space-around', 
+    justifyContent: 'space-between', 
     flexDirection: 'row',
     borderWidth: 1,
     padding: 10,
-    borderRadius: 8,
-    marginTop: 10
+    marginTop: 16,
+    marginHorizontal: 20,
   },
   lap: {
-    justifyContent: 'space-around', 
+    justifyContent: 'space-between', 
     flexDirection: 'row',
-    backgroundColor: 'lightgray',
     padding: 10,
-    borderRadius: 8,
-    marginTop: 10
-  },
-  lapBtn: {
-    justifyContent: 'space-around', 
-    flexDirection: 'row',
-    backgroundColor: 'lightgray',
-    padding: 10,
-    marginTop: 10
+    margin: 10,
+    marginHorizontal: 20,
+    borderBottomColor: '#241D24',
+    borderBottomWidth: 1
   },
   lapText: {
-    fontSize: 30
+    color: 'white',
+    fontSize: 20
   },
   LapBtn: {
     borderWidth: 2,
     width: 100,
     height: 100,
+    backgroundColor: "#363436",
+    color: 'gray',
     borderRadius: 50,
     justifyContent: 'center',
     alignItems: 'center',
   },
   StartBtn: {
-    opacity: 0.8,
     borderWidth: 2,
+    color: '#2DC653',
     width: 100,
     height: 100,
     borderRadius: 50,
     justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: '#6cf577'
+    backgroundColor: '#0A2A13',
+  },
+  BtnRoundedBorder: {
+    borderRadius: 50,
+    borderWidth: 2,
   },
   StopBtn: {
-    opacity: 0.8,
     borderWidth: 2,
     width: 100,
     height: 100,
     borderRadius: 50,
     justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: '#f56464'
+    backgroundColor: '#350E0E'
   },
   footer: {
-    height: '30%'
+    flexDirection: 'column',
+    height: '50%'
   }
 });
 
